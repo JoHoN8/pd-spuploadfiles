@@ -1,13 +1,17 @@
 module.exports = function(env) {
     const path = require('path'),
-        cleanWebpackPlugin = require('clean-webpack-plugin'),
+        webpack = require('webpack'),
         settings = require('./statics/configSettings.js');
-
+    
     return {
-        entry: './tests/project_tests',
+        entry: {
+            library: './src/library.js'
+        },
         output: {
-            path: path.resolve(__dirname, "../tests"),
-            filename: "spServerUpload_tests.js",
+            path: path.resolve(__dirname, "../dist"),
+            filename: './[name].min.js',
+            libraryTarget: 'umd',
+            library: 'pdspserverajax' //this will be the global variable to hook into
         },
         module:{
             rules:[
@@ -25,10 +29,11 @@ module.exports = function(env) {
             extensions: ['.js', '.css', '.json']
         },
         plugins: [
-            new cleanWebpackPlugin(['spServerUpload_tests.js'], settings.testCleanOptions)
+            new webpack.optimize.UglifyJsPlugin(settings.UglifyJsOptions),
+            new webpack.DefinePlugin(settings.defineOptions)
         ],
-        devtool: 'inline-source-map',
-        externals: {}
+        devtool: 'source-map',
+        externals: settings.externals
     };
 };
 
