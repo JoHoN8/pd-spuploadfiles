@@ -4,16 +4,26 @@
   "main": "src/library.js",
   "scripts": {
     "testFile": "webpack --config ./webpackConfigs/webpack.config.testing.js",
-    "dev": "webpack --env dev --config ./webpackConfigs/webpack.config.js",
-    "prod": "webpack --env prod --config ./webpackConfigs/webpack.config.js"
+    "devBuild": "webpack --config ./webpackConfigs/webpack.config.dev.js",
+    "production": "webpack --config ./webpackConfigs/webpack.config.prod.js",
+    "prodBuild": "run-s devBuild production",
+    "docs": "jsdoc2md ./src/library.js > README.md"
   },
   "license": "ISC",
-  "dependencies": {},
+  "dependencies": {
+    "axios": "^0.16.2",
+    "pd-meteredrequestprocessor": "github:JoHoN8/pd-meteredRequestProcessor#1.1.2",
+    "pd-spserverajax": "^2.1.3",
+    "pd-sputil": "^2.3.2"
+  },
   "devDependencies": {
     "babel-core": "latest",
     "babel-loader": "latest",
-    "babel-preset-es2015": "latest",
     "babel-preset-stage-0": "latest",
+    "babel-preset-env": "^1.6.0",
+    "clean-webpack-plugin": "^0.1.16",
+    "jsdoc-to-markdown": "^3.0.0",
+    "npm-run-all": "^4.1.1",
     "webpack": "latest",
     "webpack-dev-server": "latest"
   }

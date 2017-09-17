@@ -4,10 +4,14 @@ module.exports = function(env) {
         settings = require('./statics/configSettings.js');
 
     return {
-        entry: './tests/project_tests',
+        entry: {
+            library: './src/library.js'
+        },
         output: {
-            path: path.resolve(__dirname, "../tests"),
-            filename: "spServerUpload_tests.js",
+            path: path.resolve(__dirname, "../dist"),
+            filename: './[name].js',
+            libraryTarget: 'umd',
+            library: 'pdspserverajax' //this will be the global variable to hook into
         },
         module:{
             rules:[
@@ -22,13 +26,13 @@ module.exports = function(env) {
             ]
         },
         resolve: {
-            extensions: ['.js', '.css', '.json']
+            extensions: ['.js', '.json']
         },
         plugins: [
-            new cleanWebpackPlugin(['spServerUpload_tests.js'], settings.testCleanOptions)
+            new cleanWebpackPlugin(['dist'], settings.cleanOptions)
         ],
         devtool: 'inline-source-map',
-        externals: {}
+        externals: settings.externals
     };
 };
 
