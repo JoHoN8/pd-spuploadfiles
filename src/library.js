@@ -1,115 +1,7 @@
 /**
     app name pd-spuploadfiles
  */
-import {MeteredRequestProcessor} from 'pd-meteredrequestprocessor';
-import {getContext} from 'pd-spserverajax';
-import {getURLOrigin} from 'pd-sputil';
-import axios from 'axios';
-import * as upHelp from './helpers';
-
-class MultiUploadBase extends MeteredRequestProcessor {
-    constructor() {
-        super();
-        this._itemsToUpload = [];
-    }
-    _getContext() {
-        return getContext({
-            url: this.url
-        }).then(response => {
-            return response.data.FormDigestValue;
-        });
-    }
-    _createUploadObjects() {
-        let totalFiles = this.files.length;
-        for (var ii = 0; ii < totalFiles; ii++) {
-            this._itemsToUpload.push({
-                url: this.uploadUrl,
-                file: this.files.item(ii),
-                context: this._context
-            });
-        }
-    }
-    _uploadUrlBase() {
-        let origin = this.origin || getURLOrigin();
-        return `${origin}${this.url}/_api/web`;
-    }
-    _createLibraryUrl() {
-        
-        let url = this._uploadUrlBase();
-        this.uploadUrl = `${url}/GetFolderByServerRelativeUrl('${this.folder}')/Files/add(url='{fileName}',overwrite=true)`;
-    }
-    _createListUrl() {
-        let url = this._uploadUrlBase();
-        if (this.listGUID) {
-            this.uploadUrl = `${url}/lists(guid'${this.listGUID}')/items(${this.itemId})/AttachmentFiles/add(FileName='{fileName}')`;
-        } else {
-            this.uploadUrl = `${url}/lists/getbytitle('${this.listTitle}')/items(${this.itemId})/AttachmentFiles/add(FileName='{fileName}')`;
-        }
-    }
-    _getFileBuffer(file) {
-        return new Promise((resolve, reject) => {
-            var reader = new FileReader();
-            reader.onloadend = function (e) {
-                resolve(e.target.result);
-            };
-            reader.onerror = function (e) {
-                reject(e.target.error);
-            };
-            reader.readAsArrayBuffer(file);
-        }) ;
-    }
-    _ensureFileList(files) {
-        return files instanceof FileList;
-    }
-    urlCreator() {
-        throw new Error(upHelp.urlCreator);
-    }
-    _setHeaders(aryBuf) {
-        return  {
-            "accept": "application/json;odata=verbose",
-            "X-RequestDigest": this._context,
-            "content-length": aryBuf.byteLength
-        };
-    }
-    startProcess() {
-        if (!(this._ensureFileList(this.files))) {
-            throw new Error(upHelp.invalidFileList);
-        }
-        //create url 
-        if (this.type === upHelp.library) {
-            this._createLibraryUrl();
-        } else {
-            this._createListUrl();
-        }
-        //get context
-        return this._getContext()
-        .then(ctx => {
-
-            //create objects
-            this._context = ctx;
-            this._createUploadObjects(this.url, this._context, this.files);
-
-            this.setPreProcessingCB(function(itemData, index) {
-                if (this.itemCreatedCB) {
-                    this.itemCreatedCB(itemData, index);
-                }
-                return this._getFileBuffer(itemData.file)
-                .then(buffer => {
-                    let upUrl = itemData.url.replace("{fileName}", itemData.file.name);
-                    return axios({
-                        url: upUrl,
-                        method: 'POST',
-                        data: buffer,
-                        headers: this._setHeaders(buffer)
-                    });
-                });
-                
-            });
-            this.setItemProcessedCB(this.itemCompletedCB);
-            return this.init(this._itemsToUpload);
-        });
-    }
-}
+import {startUploadProcess, listIdTypeChecker, library, list} from './helpers';
 
 /**
  * 
@@ -123,10 +15,8 @@ class MultiUploadBase extends MeteredRequestProcessor {
  */
 export function uploadFilesToLibrary (props) {
 
-    let uploadProcessor = new MultiUploadBase();
-    uploadProcessor.type = upHelp.library;
-    Object.assign(uploadProcessor, props);
-    return uploadProcessor.startProcess();
+    props.type = library;
+    return startUploadProcess(props);
 }
 
 /**
@@ -134,17 +24,37 @@ export function uploadFilesToLibrary (props) {
  * @param {object} props 
  * @param {string} [props.origin] 
  * @param {string} props.url - site relative url 
- * @param {number[]} props.itemId - array of item id to upload files to 
+ * @param {number[]} props.itemIds - array of item ids to upload files to 
  * @param {string} props.listGUID - use either listGUID or listTitle not both
  * @param {string} [props.listTitle]
  * @param {*} props.files
  */
-export function uploadFileToList(props) {
+export function uploadFilesToList(props) {
     //only one item and one file
     //set up loop to handle multiple item ids
-    let uploadProcessor = new MultiUploadBase();
-    uploadProcessor.type = upHelp.list;
-    uploadProcessor.changeConcurrentProcessing = 1;
-    Object.assign(uploadProcessor, props);
-    return uploadProcessor.startProcess();
+    if (!Array.isArray(props.itemIds)) {
+        props.itemIds = [props.itemIds];
+    }
+    //check all numbers and setup results object
+    if (!props.verified) {
+        listIdTypeChecker(props.itemIds);
+        props.allResults = {};
+        props.allResults.length = 0;
+        props.verified = true;
+    }
+
+    props.type = list;
+    props.processingItem = props.processingItem >= 0 ? props.processingItem + 1 : 0;
+    props.itemId = props.itemIds[props.processingItem];
+
+    return startUploadProcess(props)
+    .then(items => {
+        props.allResults[props.itemId] = items;
+        props.allResults.length++;
+
+        if (props.allResults.length < props.itemIds.length) {
+            return uploadFilesToList(props);
+        }
+        return props.allResults;
+    });
 }
