@@ -10,6 +10,19 @@
     "docs": "jsdoc2md ./src/library.js > README.md"
   },
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JoHoN8/pd-spuploadfiles.git"
+  },
+  "keywords": [
+    "sharepoint",
+    "upload"
+  ],
+  "author": {
+    "name": "Jered McGlohon",
+    "email": "puredirective@gmail.com",
+    "url": "https://github.com/JoHoN8"
+  },
   "dependencies": {
     "axios": "^0.16.2",
     "pd-meteredrequestprocessor": "github:JoHoN8/pd-meteredRequestProcessor#1.1.2",
