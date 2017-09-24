@@ -11,7 +11,7 @@ module.exports = function(env) {
             path: path.resolve(__dirname, "../dist"),
             filename: './[name].min.js',
             libraryTarget: 'umd',
-            library: 'pdspserverajax' //this will be the global variable to hook into
+            library: 'pdspuploadfiles' //this will be the global variable to hook into
         },
         module:{
             rules:[

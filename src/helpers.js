@@ -123,22 +123,30 @@ export function startUploadProcess(props) {
 			processor.changeConcurrentProcessing(uploadProperties.totalToUpload);
 
 			processor.setPreProcessingCB(function (itemData, index) {
+
+				let config = {
+					method: 'POST',
+					headers: null
+				};
 				if (props.itemCreatedCB) {
 					props.itemCreatedCB(itemData, index);
 				}
 				return getFileBuffer(itemData.file)
 					.then(buffer => {
-						let upUrl = itemData.url.replace("{fileName}", itemData.file.name);
-						return axios({
-							url: upUrl,
-							method: 'POST',
-							data: buffer,
-							headers: {
-								"accept": "application/json;odata=verbose",
-								"X-RequestDigest": itemData.context,
-								"content-length": buffer.byteLength
-							}
-						});
+						config.url = itemData.url.replace("{fileName}", itemData.file.name);
+						config.data = buffer;
+						config.headers = {
+							"accept": "application/json;odata=verbose",
+							"X-RequestDigest": itemData.context,
+							"content-length": buffer.byteLength
+						};
+						if (props.itemUploadProgressCB) {
+							config.onUploadProgress = function(progressEvent) {
+								var percentCompleted = Math.round( (progressEvent.loaded * 100) / progressEvent.total );
+								props.itemUploadProgressCB(percentCompleted, index);
+							};
+						}
+						return axios(config);
 					});
 
 			});

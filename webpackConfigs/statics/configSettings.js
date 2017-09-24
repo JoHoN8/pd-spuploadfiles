@@ -40,6 +40,12 @@ module.exports = {
 			amd: 'pd-sputil',
 			root: 'pdsputil'
 		},
+		"pd-spserverajax": {
+			commonjs: 'pd-spserverajax',
+			commonjs2: 'pd-spserverajax',
+			amd: 'pd-spserverajax',
+			root: 'pdspserverajax'
+		},
 		"axois": {
 			commonjs: 'axios',
 			commonjs2: 'axios',
